@@ -15,10 +15,18 @@ classdef CoolSnapES2 < handle
 		src;  % i dont know why we need cam and src but seems to be a matlab 
 				% thing
 		cam;  % variable used to store hardware interface
-		exposuretime;  % exposure time in ms
+		exposuretime(1, 1);  % exposure time in ms
 		nX;  % number of pixels in x direction 
 		nY;  % number of pixels in y direction
-		frame;
+		frame(:, :);
+		flagDisplay(1, 1) logical = 1;
+		flagVerbose(1, 1) logical = 1;
+		thresSatPixel(1, 1) single = 1e-2;
+		maxVal(1, 1) = intmax('uint16'); % saturation limit of camera
+	end
+
+	properties(Dependent)
+		data; % synonym for frame
 	end
 
 	methods
@@ -28,7 +36,7 @@ classdef CoolSnapES2 < handle
 			fprintf('[CoolSnapES2] Creating new camera instance.\n');
 
 			% open hardware connection to camera
-			CoolSnapES2.cam = videoinput('pmimaq_2017b'); %, 1, 'PM-Cam 1392x1040');
+			CoolSnapES2.cam = videoinput('pmimaq_2017b'); %pmimaq_2017b, 1, 'PM-Cam 1392x1040');
 			CoolSnapES2.src = getselectedsource(CoolSnapES2.cam);
 			CoolSnapES2.cam.FramesPerTrigger = 1;
 
@@ -60,24 +68,14 @@ classdef CoolSnapES2 < handle
 			et = cam.src.Exposure;
 		end
 
-		function frame = Acquire(cam)
-			cam.frame = getsnapshot(cam.cam);
-			frame = cam.frame;
+		function data = get.data(cam)
+			data = cam.frame;
 		end
 
-		function Display(cam)
-			frame = cam.Acquire();
-
-			figure();
-			imagesc(frame);
-			axis image;
-			xlabel('x');
-			ylabel('y');
-			title('Snapshot - CoolSnapES2');
-			colormap(bone(1024))
-			colorbar
-
-		end
+		% externally defined function
+		Display(cam); % acquires a single image and displays 
+		Adjust_Exposure_Time(cam, varargin);
+		VPrintf(cam, textMsg, flagName);
 
 		% opens a live window
 		function Live(cam)
